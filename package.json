@@ -10,7 +10,7 @@
   "devDependencies": {
     "chai": "^3.4.1",
     "eslint": "^1.10.3",
-    "eslint-config-isiahmeadows": "github:isiahmeadows/eslint-config-isiahmeadows",
+    "eslint-config-isiahmeadows": "^0.0.2",
     "mocha": "^2.3.4",
     "mocha-phantomjs": "^4.0.2",
     "uglify-js": "^2.6.1"
