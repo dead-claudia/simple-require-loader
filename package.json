@@ -1,6 +1,6 @@
 {
   "name": "simple-require-loader",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "main": "index.js",
   "description": "A simple, dynamic module loader with hot swapping and optional file loading support.",
   "scripts": {
