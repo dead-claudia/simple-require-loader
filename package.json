@@ -1,0 +1,19 @@
+{
+  "private": true,
+  "name": "simple-require-loader",
+  "version": "0.0.1",
+  "main": "index.js",
+  "description": "A simple, dynamic module loader with hot swapping and optional file loading support.",
+  "scripts": {
+    "minify": "node minify < browser.js > browser.min.js && node minify < local.js > local.min.js && node minify < worker.js > worker.min.js && node minify < combined.js > combined.min.js",
+    "test": "eslint . && mocha-phantomjs -R spec test/index.html"
+  },
+  "devDependencies": {
+    "chai": "^3.4.1",
+    "eslint": "^1.10.3",
+    "eslint-config-isiahmeadows": "github:isiahmeadows/eslint-config-isiahmeadows",
+    "mocha": "^2.3.4",
+    "mocha-phantomjs": "^4.0.2",
+    "uglify-js": "^2.6.1"
+  }
+}

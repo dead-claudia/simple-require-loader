@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../node_modules/mocha/mocha.css">
+<div id="mocha"></div>
+
+<script src="../node_modules/mocha/mocha.js"></script>
+<script src="../node_modules/chai/chai.js"></script>
+
+<!-- Initialize the worker, if support exists -->
+<script src="worker-init.js"></script>
+<script>mocha.setup("bdd")</script>
+
+<!-- browser.js tests -->
+<script src="../browser.js"></script>
+<script>
+window.browser = window.r
+delete window.r
+</script>
+<script src="browser.js"></script>
+
+<!-- local.js tests -->
+<script src="../local.js"></script>
+<script>
+window.local = window.r
+delete window.r
+</script>
+<script src="local.js"></script>
+
+<!-- combined.js tests -->
+<script src="../combined.js"></script>
+<script>
+window.combined = window.r
+delete window.r
+</script>
+<script src="combined-browser.js"></script>
+
+<!-- combined.js worker tests -->
+<script src="combined-worker.js"></script>
+
+<script>
+mocha.checkLeaks()
+mocha.globals(["browser", "local", "combined", "chai", "callWorker"])
+mocha.run()
+</script>
