@@ -1,5 +1,7 @@
 # Simple module loader
 
+[![Build Status](https://travis-ci.org/isiahmeadows/simple-require-loader.svg?branch=master)](https://travis-ci.org/isiahmeadows/simple-require-loader)
+
 This is a simple JS loader that can dynamically load files as well as support multiple modules within a single file. It also supports hot swapping. This plus its 510-byte minified+gzipped size (562 bytes with worker support) makes it a pretty nice solution for a simple module system. Also, it's one of the smallest loaders I know of, yet has more features than most other module loaders its size.
 
 ## Features
