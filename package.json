@@ -1,7 +1,7 @@
 {
   "name": "simple-require-loader",
   "author": "Isiah Meadows <me@isiahmeadows.com> (http://isiahmeadows.com)",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "main": "index.js",
   "description": "A simple, dynamic module loader with hot swapping and optional file loading support.",
   "scripts": {
