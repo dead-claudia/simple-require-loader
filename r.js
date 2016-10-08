@@ -1,4 +1,5 @@
-/* global document, event, importScripts, self, setTimeout */
+/* global event, importScripts, setTimeout */
+/* eslint-disable consistent-return */
 
 /**
  * Copyright (c) 2016-current, Isiah Meadows.
@@ -20,40 +21,19 @@
  * This is a primitive JS module loader that supports dynamic script loading.
  */
 
-self.r || (function (r, modules, factories) { // eslint-disable-line
+this.r || (function (r, document, init, modules, factories) { // eslint-disable-line
     "use strict"
 
-    function noop() {}
-    noop.prototype = null
+    init.prototype = null
+    modules = new init() // eslint-disable-line new-cap
+    factories = new init() // eslint-disable-line new-cap
 
-    modules = new noop()
-    factories = new noop()
-
-    function init(name, res) {
-        if (!(name in factories)) return
-        res = factories[name]
-        delete factories[name]
-        res = res(modules[name])
-        if (res != null) modules[name] = res
+    r.defined = function (name) {
+        return name in modules
     }
 
-    r.define = function (name, impl) {
-        // Namespace clashes should be detected in a regular define.
-        if (name in modules) {
-            throw Error("Module already defined: " + name)
-        }
-
-        modules[name] = {}
-        factories[name] = impl
-    }
-
-    r.require = function (name) {
-        if (!(name in modules)) {
-            throw Error("Could not find module: " + name)
-        }
-
-        init(name)
-        return modules[name]
+    r.required = function (name) {
+        return name in modules && !(name in factories)
     }
 
     r.unload = function (name) {
@@ -62,21 +42,63 @@ self.r || (function (r, modules, factories) { // eslint-disable-line
         delete factories[name]
     }
 
-    r.redefine = function (name, impl) {
-        modules[name] = {}
-        factories[name] = impl
-        init(name)
+    r.require = init = function (name) {
+        if (!(name in modules)) {
+            throw Error("Could not find module: " + name)
+        }
+
+        if (name in factories) {
+            var res = factories[name]
+
+            delete factories[name]
+            res = res(modules[name])
+            modules[name] = res != null ? res : modules[name]
+        }
+
+        return modules[name]
     }
 
-    if (typeof document !== "undefined") {
-        r.load = function (ns, name, callback) {
-            if (typeof name === "function") {
-                callback = name
-                name = ns
-                ns = null
+    r.module = function (name, value) {
+        if (name in modules) {
+            throw Error("Module already defined: " + name)
+        }
+
+        modules[name] = value != null ? value : {}
+        // This probably doesn't exist, but just in case
+        delete factories[name]
+    }
+
+    r.define = function (name, impl) {
+        if (name in modules) {
+            throw Error("Module already defined: " + name)
+        }
+
+        modules[name] = {}
+        factories[name] = impl
+    }
+
+    r.load = function (ns, name, callback) {
+        if (typeof name === "function") {
+            callback = name
+            name = ns
+            ns = null
+        }
+
+        function load() {
+            if (ns != null) {
+                try {
+                    ns = init(ns)
+                } catch (e) {
+                    return callback(e)
+                }
             }
 
+            callback(null, ns)
+        }
+
+        if (document != null) {
             var el = document.createElement("script")
+
             el.async = el.defer = true
             el.src = name
 
@@ -86,14 +108,7 @@ self.r || (function (r, modules, factories) { // eslint-disable-line
 
                 // Remove the node after it loads.
                 document.body.removeChild(el)
-
-                try {
-                    init(ns)
-                } catch (e) {
-                    return callback(e)
-                }
-
-                callback(null, modules[ns])
+                load()
             }
 
             el.onerror = function (ev) {
@@ -102,30 +117,20 @@ self.r || (function (r, modules, factories) { // eslint-disable-line
 
                 // Remove the node after it loads.
                 document.body.removeChild(el)
-
                 callback(ev)
             }
 
             document.body.appendChild(el)
-        }
-    } else {
-        r.load = function (ns, name, callback) {
-            if (typeof name === "function") {
-                callback = name
-                name = ns
-                ns = null
-            }
-
+        } else {
             setTimeout(function () {
                 try {
                     importScripts(name)
-                    init(ns)
                 } catch (e) {
                     return callback(e)
                 }
 
-                callback(null, modules[ns])
+                load()
             }, 0)
         }
     }
-})(self.r = {})
+})(this.r = {}, this.document, function () {}) // eslint-disable-line

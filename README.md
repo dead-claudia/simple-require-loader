@@ -1,99 +1,136 @@
 # Simple module loader
 
+A simple, dynamic, powerful module loader with hot swapping and optional file loading support.
+
 [![Build Status](https://travis-ci.org/isiahmeadows/simple-require-loader.svg?branch=master)](https://travis-ci.org/isiahmeadows/simple-require-loader)
 
-This is a simple JS loader that can dynamically load files as well as support multiple modules within a single file. It also supports hot swapping. This plus its 510-byte minified+gzipped size (562 bytes with worker support) makes it a pretty nice solution for a simple module system. Also, it's one of the smallest loaders I know of, yet has more features than most other module loaders its size.
+This is a simple JS loader that can dynamically load files as well as support multiple modules within a single file. It also supports hot swapping. This plus its 568-byte minified+gzipped size makes it a pretty nice solution for a simple module system if you need one. Also, it's one of the smallest module loaders I know of, yet compares feature-wise to ones almost 4 times its size (1.5+ kilobytes).
 
 ## Features
 
-- Highly unopinionated
-- Hot swapping support via `r.redefine()`
-- Lazy instantiation
-- Optional asynchronous file loading support
+- Concise syntax
+- Namespaced modules with optional default exports
+- Hot swapping and introspection
+- Lazy, synchronous instantiation
+- Optional asynchronous, dynamic remote loading support
 - Node-like cyclic dependency handling
-- Supports browsers and workers
-- Very small (510 bytes minified + gzipped, 562 with worker support)
-    - Without file loading support: 335 bytes minified + gzipped
-- Easy bundling with concatenation
+- Very small (568 bytes minified + gzipped, 355 without remote loading support)
+- Written in pure ES3 (mod strict mode if supported)
+- Fully supports both browsers and workers (and shells, without remote loading support)
+- Easy bundling with concatenation or whatever else you like
 - Thoroughly tested
 
 ## Example Usage
 
 ```html
-<!doctype html>
-<meta charset="utf-8">
-<!-- Include this utility. -->
-<script src="browser.js"></script>
+<!-- Include this -->
+<script src="r.min.js"></script>
 <script>
 // Alias these utilities, calling their respective methods to detach them from
-// the global object.
+// the global object. Once they're both loaded, load the main module. Note that
+// it's just another module - it doesn't magically load like an inline
+// `<script>` element.
+var remaining = 2
+
 r.load("/jquery.min.js", function (err) {
-    if (err) return
-    r.redefine("jquery", $.noConflict)
+    if (err) return console.error(err)
+    r.module("jquery", $.noConflict())
+    if (--remaining) r.require("main")
 })
 
-r.load("/underscore.min.js", function (err) {
-    if (err) return
-    r.redefine("underscore", _.noConflict)
+r.load("/lodash.min.js", function (err) {
+    if (err) return console.error(err)
+    r.module("lodash", _.noConflict())
+    if (--remaining) r.require("main")
 })
 
-// Define a few modules
-r.define("foo", function (exports) { return "default export" })
+// Define a few modules - not loaded yet!
+r.define("foo", function () { return "default export" })
+r.define("bar", function (exports) { exports.named = "named export" })
 
-r.define("assert", function (exports) {
+r.define("assert", function () {
     return function assert(condition, message) {
         if (!condition) throw new Error(message)
     }
 })
 
+// Define our main module
 r.define("main", function () {
+    // Load an `assert` module
     var assert = r.require("assert")
+    var $ = r.require("jquery")
+    var _ = r.require("lodash")
 
+    // And use its export
 	assert(r.require("foo") === "default export",
         "default exports are read correctly")
 
+    assert(_.matches(r.require("bar"), {named: "named export"}),
+        "named exports are read correctly")
+
+    // Load a remote module and immediately use it
     r.load("page/base", "/page.js", function (err, BaseComponent) {
         if (err != null) return displayError(err)
-        renderComponent(document.getElementById("body"), BaseComponent)
+        renderComponent($("#body").get(0), BaseComponent)
     })
 
-	r.redefine("assert", function () {
+    // Hot-swap an existing module
+    r.unload("assert")
+	r.define("assert", function () {
         return function assert() {
             return true
         }
     })
 
+    // Hot-unload an existing module
     r.unload("bad-module")
 })
-
-// You have to explicitly initialize the main module.
-r.require("main")
 </script>
 ```
 
 ## Documentation
 
-**r.define("module-name", impl)**
+**r.defined("module-name")**
 
-- `"module-name"` is the name of your module. Anything that can be an object key works, really. Even multi-line strings or ES6 symbols work.
-- `impl` is the function to initialize the module. It's called by need with one argument: `exports`, which acts a lot like CommonJS's and AMD's `exports` variable
+Check if `"module-name"` is defined (regardless of whether it is loaded or not).
 
-If `"module-name"` is already defined, this throws a synchronous error.
+**r.required("module-name")**
+
+Check if `"module-name"` has been defined *and* loaded.
+
+**r.unload("module-name")**
+
+Unload `"module-name"` if it was previously loaded. If there was no such module, this does nothing (no need to remove non-existent modules).
 
 **r.require("module-name")**
 
 Require `"module-name"` CommonJS-style. This throws an error if the module is not defined.
 
-**r.unload("module-name")**
-
-Unload `"module-name"` if it was previously loaded. This silently fails if the module doesn't exist.
-
-**r.redefine("module-name", impl)**
-
-Redefine an existing module. If the module was already instantiated, this will synchronously re-initialize it with the new function.
-
 - `"module-name"` is the name of the module.
 - `impl` is the function to initialize the module.
+
+**r.module("module-name", impl)**
+
+Define an already-instantiated module. It's equivalent to the following below, but much simpler under the hood:
+
+```js
+r.define("module-name", function () { return impl })
+r.require("module-name")
+```
+
+- `"module-name"` is the name of your module. Anything that can be an object key works, really. Even multi-line strings or ES6 symbols work.
+- `impl` is the actual exported value of the module, or `{}` if it is `null`/`undefined`.
+
+If `"module-name"` is already defined, this throws an error.
+
+**r.define("module-name", impl)**
+
+- `"module-name"` is the name of your module. Anything that can be an object key works, really. Even multi-line strings or ES6 symbols work.
+- `impl` is the function to initialize the module. It's called by need with one argument: `exports`, which acts a lot like CommonJS's and AMD's `exports` variable.
+
+If `impl` returns anything other than `null`/`undefined`, that return value is used as the export.
+
+If `"module-name"` is already defined, this throws an error.
 
 **r.load("module-name", "/remote-resource", callback?)**
 **r.load("/remote-resource", callback?)**
@@ -111,33 +148,29 @@ The callback is always called asynchronously.
 
 ## Versions
 
-There are three versions of this API:
+There are two versions of this API:
 
-- `browser.js` for standard browsers. Scripts are loaded via `script` elements appended to the body.
-- `combined.js` for both browsers and web workers. Scripts are loaded via `script` elements appended to the body in the main thread, and via `importScripts` in workers.
+- `r.js` for browsers and web workers. Scripts are loaded via `script` elements appended to the body in the main thread, and via `importScripts` in workers.
 - `local.js`, which sacrifices file loading support for a significant reduction in size and wider compatibility (it should be runnable in even Netscape 3).
 
 Each of these has a minified variant within this repo as well, generated via `npm run minify`.
 
 Here's a size comparison in bytes for each file at the time of writing:
 
-File            | Size | Gzipped
-----------------|------|--------
-combined.js     | 3718 | 1309
-browser.js      | 3021 | 1229
-local.js        | 2153 | 974
-combined.min.js | 1142 | 562
-browser.min.js  | 968  | 510
-local.min.js    | 548  | 335
-
-*Note that these include the copyright header.*
+File         | Size (mod license) | Gzipped (mod license)
+-------------|--------------------|------------------------
+r.js         | 3908               | 1343
+local.js     | 2366               | 958
+r.min.js     | 1203 (1095)        | 568 (489)
+local.min.js | 688 (580)          | 355 (279)
 
 ## Contributing
 
 Pull requests are always welcome. Mocha is used for tests, and Chai for assertions.
 
+- If you haven't already, [install Node and `npm`](https://nodejs.org).
 - `npm test` - Lint this with ESLint and run the tests in PhantomJS. This doesn't run the worker tests, as PhantomJS doesn't support those. Also note that this runs them with the `file:` protocol.
-- `npm run minify` - Regenerate the minified variants with UglifyJS2. This is done through minify.js in the project root.
+- `node minify` - Regenerate the minified variants with UglifyJS2.
 
 Do note that when running the tests, the browser (or PhantomJS) *will* rightly complain about missing files. If it's about `test/fixtures/missing.js`, that's intentional, and you don't have to worry.
 
@@ -145,10 +178,4 @@ And do check out [http-server](https://www.npmjs.com/package/http-server). It wi
 
 ## License
 
-ISC License
-
-Copyright (c) 2016-current, Isiah Meadows.
-
-Permission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby granted, provided that the above copyright notice and this permission notice appear in all copies.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+[ISC License](https://github.com/isiahmeadows/simple-require-loader/blob/master/LICENSE.md)

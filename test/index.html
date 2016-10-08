@@ -5,40 +5,52 @@
 
 <script src="../node_modules/mocha/mocha.js"></script>
 <script src="../node_modules/chai/chai.js"></script>
+<script>mocha.setup("bdd")</script>
+
+<!-- Common functions used across tests -->
+<script src="factory.js"></script>
+<script>
+(function (global) {
+    "use strict"
+
+    function invoke(describe) {
+        return function (name, func) {
+            if (func == null) {
+                global.describe = describe
+            } else {
+                var local = global.r
+
+                describe(name, function () { func(local) })
+            }
+        }
+    }
+
+    var describe = global.describe
+
+    global.describe = invoke(describe)
+    global.describe.only = invoke(describe.only)
+    global.describe.skip = invoke(describe.skip)
+})(this)
+</script>
 
 <!-- Initialize the worker, if support exists -->
 <script src="worker-init.js"></script>
-<script>mocha.setup("bdd")</script>
-
-<!-- browser.js tests -->
-<script src="../browser.js"></script>
-<script>
-window.browser = window.r
-delete window.r
-</script>
-<script src="browser.js"></script>
 
 <!-- local.js tests -->
 <script src="../local.js"></script>
-<script>
-window.local = window.r
-delete window.r
-</script>
-<script src="local.js"></script>
+<script src="r-local.js"></script>
+<script>delete r</script>
 
-<!-- combined.js tests -->
-<script src="../combined.js"></script>
-<script>
-window.combined = window.r
-delete window.r
-</script>
-<script src="combined-browser.js"></script>
+<!-- r.js tests -->
+<script src="../r.js"></script>
+<script src="r-browser.js"></script>
 
-<!-- combined.js worker tests -->
-<script src="combined-worker.js"></script>
+<!-- r.js worker tests -->
+<script src="r-worker.js"></script>
 
 <script>
+describe() // restore previous version for nested calls
 mocha.checkLeaks()
-mocha.globals(["browser", "local", "combined", "chai", "callWorker"])
+mocha.globals(["chai", "callWorker", "waitForWorker"])
 mocha.run()
 </script>

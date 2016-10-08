@@ -18,53 +18,59 @@
  * This is a primitive JS module loader that only supports local modules.
  */
 
-this.r || (function (global, modules, factories) { // eslint-disable-line
+this.r || (function (r, init, modules, factories) { // eslint-disable-line
     "use strict"
 
-    function noop() {}
-    noop.prototype = null
+    init.prototype = null
+    modules = new init() // eslint-disable-line new-cap
+    factories = new init() // eslint-disable-line new-cap
 
-    modules = new noop()
-    factories = new noop()
+    r.defined = function (name) {
+        return name in modules
+    }
 
-    function init(name, res) {
-        if (!(name in factories)) return
-        res = factories[name]
+    r.required = function (name) {
+        return name in modules && !(name in factories)
+    }
+
+    r.unload = function (name) {
+        delete modules[name]
+        // This probably doesn't exist, but just in case
         delete factories[name]
-        res = res(modules[name])
-        if (res != null) modules[name] = res
     }
 
-    global.r = {
-        define: function (name, impl) {
-            // Namespace clashes should be detected in a regular define.
-            if (name in modules) {
-                throw Error("Module already defined: " + name)
-            }
-
-            modules[name] = {}
-            factories[name] = impl
-        },
-
-        require: function (name) {
-            if (!(name in modules)) {
-                throw Error("Could not find module: " + name)
-            }
-
-            init(name)
-            return modules[name]
-        },
-
-        unload: function (name) {
-            delete modules[name]
-            // This probably doesn't exist, but just in case
-            delete factories[name]
-        },
-
-        redefine: function (name, impl) {
-            modules[name] = {}
-            factories[name] = impl
-            init(name)
+    r.require = function (name) {
+        if (!(name in modules)) {
+            throw Error("Could not find module: " + name)
         }
+
+        if (name in factories) {
+            var res = factories[name]
+
+            delete factories[name]
+            res = res(modules[name])
+            modules[name] = res != null ? res : modules[name]
+        }
+
+        return modules[name]
     }
-})(this)
+
+    r.module = function (name, value) {
+        if (name in modules) {
+            throw Error("Module already defined: " + name)
+        }
+
+        modules[name] = value != null ? value : {}
+        // This probably doesn't exist, but just in case
+        delete factories[name]
+    }
+
+    r.define = function (name, impl) {
+        if (name in modules) {
+            throw Error("Module already defined: " + name)
+        }
+
+        modules[name] = {}
+        factories[name] = impl
+    }
+})(this.r = {}, function () {}) // eslint-disable-line

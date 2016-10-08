@@ -2,33 +2,21 @@
   "name": "simple-require-loader",
   "author": "Isiah Meadows <me@isiahmeadows.com> (http://isiahmeadows.com)",
   "version": "0.0.4",
-  "main": "index.js",
-  "description": "A simple, dynamic module loader with hot swapping and optional file loading support.",
+  "description": "A simple, dynamic, powerful module loader with hot swapping and optional file loading support.",
   "scripts": {
-    "minify": "node minify < browser.js > browser.min.js && node minify < local.js > local.min.js && node minify < worker.js > worker.min.js && node minify < combined.js > combined.min.js",
+    "version": "node minify && git add r.min.js local.min.js",
     "test": "eslint . && mocha-phantomjs -R spec test/index.html"
   },
   "devDependencies": {
     "chai": "^3.4.1",
-    "eslint": "^1.10.3",
-    "eslint-config-isiahmeadows": "^0.0.2",
-    "mocha": "^2.3.4",
+    "eslint": "^3.7.1",
+    "eslint-config-isiahmeadows": "^0.1.6",
+    "mocha": "^3.1.0",
     "mocha-phantomjs": "^4.0.2",
     "uglify-js": "^2.6.1"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/isiahmeadows/simple-require-loader.git"
-  },
-  "files": [
-    "browser.js",
-    "browser.min.js",
-    "combined.js",
-    "combined.min.js",
-    "local.js",
-    "local.min.js",
-    "index.js"
-  ],
+  "repository": "isiahmeadows/simple-require-loader",
+  "files": ["r.js", "r.min.js", "local.js", "local.min.js"],
   "license": "ISC",
   "bugs": "https://github.com/isiahmeadows/simple-require-loader/issues",
   "homepage": "https://github.com/isiahmeadows/simple-require-loader#readme"

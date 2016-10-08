@@ -5,41 +5,29 @@
 
     if (!window.Worker) return
 
-    function constructError(value) {
-        // Get the constructor for this error.
-        var C = window[value.name]
-        if (typeof C !== "function") C = Error
-
-        var ret = new C(value.message)
-        ret.name = value.name
-
-        // If this is ever not the case, it's a bug in this library or the tests
-        // for it.
-        ret.stack = value.stack
-
-        return ret
-    }
-
+    // Error instances need serialized through the structured clone algorithm,
+    // since passing them like any other object causes errors to be thrown.
     function deserialize(value) {
-        switch (value.type) {
-        case "error": return constructError(value)
-        case "other": return value.value
-        default: throw new Error("unreachable")
-        }
-    }
+        if (value.type === "error") {
+            // Try to recreate the native equivalent.
+            var C = window[value.name]
+            var ret
 
-    function attempt(f, data, args) {
-        args = args.map(deserialize)
-        var done = data.done || data.errback
+            if (typeof C === "function") {
+                ret = new C(value.message)
+                ret.stack = value.stack
+                C = Error
+            } else {
+                ret = new Error(value.message)
+                ret.name = value.name
+                ret.stack = value.stack
+            }
 
-        // Prevent duplicate calls to `done`
-        if (f === done) return done.apply(null, args)
-
-        try {
-            f.apply(null, args)
-            done()
-        } catch (e) {
-            done(e)
+            return ret
+        } else if (value.type === "other") {
+            return value.value
+        } else {
+            throw new Error("unreachable")
         }
     }
 
@@ -50,8 +38,23 @@
 
     function run(res, name) {
         var data = datas[res.id]
+
         datas[res.id] = null
-        return attempt(data[name], data, res.args)
+
+        var done = data.done
+        var f = data[name] || done
+        var args = res.args
+
+        for (var i = 0; i < args.length; i++) {
+            args[i] = deserialize(args[i])
+        }
+
+        try {
+            f.apply(null, args)
+            return done()
+        } catch (e) {
+            return done(e)
+        }
     }
 
     var waiting = true
@@ -59,17 +62,24 @@
 
     worker.onmessage = function (e) {
         switch (e.data.type) {
-        case "return": return run(e.data, "callback")
-        case "error": return run(e.data, "errback")
+        case "return":
+            if (waiting) throw new Error("Still waiting on worker!")
+            return run(e.data, "callback")
+
+        case "error":
+            if (waiting) throw new Error("Still waiting on worker!")
+            return run(e.data, "errback")
+
         case "init":
             // Because GC isn't perfect.
             waiting = false
             if (callback) {
                 var ref = callback
+
                 callback = null
                 return ref()
             }
-            return
+            return undefined
 
         default: throw new Error("Unknown type: " + e.data.type)
         }
@@ -78,10 +88,12 @@
     window.waitForWorker = function (done) {
         if (!waiting) return done()
         callback = done
+        return undefined
     }
 
-    window.callWorker = function (init, callback, errback, done) {
+    window.callWorker = function (done, init, callback, errback) {
         var id = ids++
+
         datas[id] = {
             callback: callback,
             errback: errback,
@@ -89,7 +101,6 @@
         }
 
         if (Array.isArray(init)) init = init.join("\n")
-
         worker.postMessage({id: id, callback: init})
     }
 })()

@@ -1,2 +1,3 @@
 ---
 extends: isiahmeadows/compat
+root: true
