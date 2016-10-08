@@ -1,7 +1,7 @@
 {
   "name": "simple-require-loader",
   "author": "Isiah Meadows <me@isiahmeadows.com> (http://isiahmeadows.com)",
-  "version": "0.0.5",
+  "version": "0.1.0",
   "description": "A simple, dynamic, powerful module loader with hot swapping and optional remote loading support.",
   "scripts": {
     "version": "node minify && git add r.min.js local.min.js",
