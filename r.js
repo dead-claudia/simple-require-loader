@@ -1,6 +1,3 @@
-/* global event, importScripts, setTimeout */
-/* eslint-disable consistent-return */
-
 /**
  * Copyright (c) 2016-current, Isiah Meadows.
  *
@@ -17,120 +14,120 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
+/* global importScripts, setTimeout */
+/* eslint-disable consistent-return */
+
 /**
  * This is a primitive JS module loader that supports dynamic script loading.
  */
 
-this.r || (function (r, document, init, modules, factories) { // eslint-disable-line
+(function (global, document, modules, factories, init) { // eslint-disable-line
     "use strict"
 
-    init.prototype = null
-    modules = new init() // eslint-disable-line new-cap
-    factories = new init() // eslint-disable-line new-cap
-
-    r.defined = function (name) {
-        return name in modules
-    }
-
-    r.required = function (name) {
-        return name in modules && !(name in factories)
-    }
-
-    r.unload = function (name) {
-        delete modules[name]
-        // This probably doesn't exist, but just in case
-        delete factories[name]
-    }
-
-    r.require = init = function (name) {
-        if (!(name in modules)) {
-            throw Error("Could not find module: " + name)
-        }
-
-        if (name in factories) {
-            var res = factories[name]
-
+    global.r = global.r || {
+        unload: function (name) {
+            delete modules[name]
+            // This probably doesn't exist, but just in case
             delete factories[name]
-            res = res(modules[name])
-            modules[name] = res != null ? res : modules[name]
-        }
+        },
 
-        return modules[name]
-    }
+        defined: function (name) {
+            return name in modules
+        },
 
-    r.module = function (name, value) {
-        if (name in modules) {
-            throw Error("Module already defined: " + name)
-        }
+        required: function (name) {
+            return name in modules && !(name in factories)
+        },
 
-        modules[name] = value != null ? value : {}
-        // This probably doesn't exist, but just in case
-        delete factories[name]
-    }
+        require: init = function (name) {
+            if (name in modules) {
+                if (name in factories) {
+                    var res = factories[name]
 
-    r.define = function (name, impl) {
-        if (name in modules) {
-            throw Error("Module already defined: " + name)
-        }
-
-        modules[name] = {}
-        factories[name] = impl
-    }
-
-    r.load = function (ns, name, callback) {
-        if (typeof name === "function") {
-            callback = name
-            name = ns
-            ns = null
-        }
-
-        function load() {
-            if (ns != null) {
-                try {
-                    ns = init(ns)
-                } catch (e) {
-                    return callback(e)
-                }
-            }
-
-            callback(null, ns)
-        }
-
-        if (document != null) {
-            var el = document.createElement("script")
-
-            el.async = el.defer = true
-            el.src = name
-
-            el.onload = function (ev) {
-                (ev = ev || event).preventDefault()
-                ev.stopPropagation()
-
-                // Remove the node after it loads.
-                document.body.removeChild(el)
-                load()
-            }
-
-            el.onerror = function (ev) {
-                (ev = ev || event).preventDefault()
-                ev.stopPropagation()
-
-                // Remove the node after it loads.
-                document.body.removeChild(el)
-                callback(ev)
-            }
-
-            document.body.appendChild(el)
-        } else {
-            setTimeout(function () {
-                try {
-                    importScripts(name)
-                } catch (e) {
-                    return callback(e)
+                    delete factories[name]
+                    res = res(modules[name])
+                    modules[name] = res != null ? res : modules[name]
                 }
 
-                load()
-            }, 0)
+                return modules[name]
+            }
+
+            throw Error("Could not find module: " + name)
+        },
+
+        module: function (name, value) {
+            if (name in modules) {
+                throw Error("Module already defined: " + name)
+            }
+
+            modules[name] = value != null ? value : {}
+            // This probably doesn't exist, but just in case
+            delete factories[name]
+        },
+
+        define: function (name, impl) {
+            if (name in modules) {
+                throw Error("Module already defined: " + name)
+            }
+
+            modules[name] = {}
+            factories[name] = impl
+        },
+
+        load: function (ns, name, callback) {
+            if (callback == null) {
+                callback = name
+                name = ns
+                ns = null
+            }
+
+            function load() {
+                if (ns != null) {
+                    try {
+                        ns = init(ns)
+                    } catch (e) {
+                        return callback(e)
+                    }
+                }
+
+                callback(null, ns)
+            }
+
+            if (document != null) {
+                var el = document.createElement("script")
+
+                el.src = name
+
+                el.onload = function (ev) {
+                    ev.preventDefault()
+                    ev.stopPropagation()
+
+                    // Remove the node after it loads.
+                    document.body.removeChild(el)
+                    load()
+                }
+
+                el.onerror = function (ev) {
+                    ev.preventDefault()
+                    ev.stopPropagation()
+
+                    // Remove the node after it loads.
+                    document.body.removeChild(el)
+                    callback(ev)
+                }
+
+                document.body.appendChild(el)
+            } else {
+                setTimeout(function () {
+                    try {
+                        importScripts(name)
+                    } catch (e) {
+                        return callback(e)
+                    }
+
+                    load()
+                }, 0)
+            }
         }
     }
-})(this.r = {}, this.document, function () {}) // eslint-disable-line
+})(this, this.document, Object.create(null), Object.create(null)) // eslint-disable-line

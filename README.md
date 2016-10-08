@@ -1,10 +1,10 @@
 # Simple module loader
 
-A simple, dynamic, powerful module loader with hot swapping and optional file loading support.
+A simple, dynamic, powerful module loader with hot swapping and optional remote loading support.
 
 [![Build Status](https://travis-ci.org/isiahmeadows/simple-require-loader.svg?branch=master)](https://travis-ci.org/isiahmeadows/simple-require-loader)
 
-This is a simple JS loader that can dynamically load files as well as support multiple modules within a single file. It also supports hot swapping. This plus its 568-byte minified+gzipped size makes it a pretty nice solution for a simple module system if you need one. Also, it's one of the smallest module loaders I know of, yet compares feature-wise to ones almost 4 times its size (1.5+ kilobytes).
+This is a simple JS loader that can dynamically load files as well as support multiple modules within a single file. It also supports hot swapping. This plus its 528-byte minified+gzipped size makes it a pretty nice solution for a simple module system if you need one. Also, it's one of the smallest module loaders I know of, yet compares feature-wise to ones over 3 times its size (1.5+ kilobytes).
 
 ## Features
 
@@ -14,9 +14,8 @@ This is a simple JS loader that can dynamically load files as well as support mu
 - Lazy, synchronous instantiation
 - Optional asynchronous, dynamic remote loading support
 - Node-like cyclic dependency handling
-- Very small (568 bytes minified + gzipped, 355 without remote loading support)
-- Written in pure ES3 (mod strict mode if supported)
-- Fully supports both browsers and workers (and shells, without remote loading support)
+- Very small (528 bytes minified + gzipped, 340 without remote loading support)
+- Fully supports both browsers and workers (and shells, but without remote loading support)
 - Easy bundling with concatenation or whatever else you like
 - Thoroughly tested
 
@@ -148,23 +147,25 @@ The callback is always called asynchronously.
 
 ## Versions
 
-There are two versions of this API:
+There are two versions of this API (and `\*.min.js` minified variants):
 
 - `r.js` for browsers and web workers. Scripts are loaded via `script` elements appended to the body in the main thread, and via `importScripts` in workers.
-- `local.js`, which sacrifices file loading support for a significant reduction in size and wider compatibility (it should be runnable in even Netscape 3).
+- `local.js`, which sacrifices file loading support for a significant reduction in size and wider compatibility (it is pure ES5, with no native or runtime-specific dependency).
 
 Each of these has a minified variant within this repo as well, generated via `npm run minify`.
 
-Here's a size comparison in bytes for each file at the time of writing:
+Here's a size comparison in bytes for each file (complete with license header) at the time of writing:
 
-File         | Size (mod license) | Gzipped (mod license)
--------------|--------------------|------------------------
-r.js         | 3908               | 1343
-local.js     | 2366               | 958
-r.min.js     | 1203 (1095)        | 568 (489)
-local.min.js | 688 (580)          | 355 (279)
+File         | Size | Gzipped
+-------------|------|--------
+r.js         | 4066 | 1279
+local.js     | 2405 | 933
+r.min.js     | 1126 | 528
+local.min.js | 665  | 340
 
 ## Contributing
+
+If you found a bug, [please tell me](https://github.com/isiahmeadows/simple-require-loader)! I'd like to make sure things remain in *working* order.
 
 Pull requests are always welcome. Mocha is used for tests, and Chai for assertions.
 
@@ -173,6 +174,8 @@ Pull requests are always welcome. Mocha is used for tests, and Chai for assertio
 - `node minify` - Regenerate the minified variants with UglifyJS2.
 
 Do note that when running the tests, the browser (or PhantomJS) *will* rightly complain about missing files. If it's about `test/fixtures/missing.js`, that's intentional, and you don't have to worry.
+
+Note that the two files are separately written, to minimize minified+gzipped file size.
 
 And do check out [http-server](https://www.npmjs.com/package/http-server). It will make testing smaller browser things much easier. I use that to load the web pages here for testing.
 
