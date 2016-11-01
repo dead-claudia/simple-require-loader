@@ -1,4 +1,4 @@
-# Simple module loader
+# simple-require-loader
 
 A simple, dynamic, powerful module loader with hot swapping and optional remote loading support.
 
